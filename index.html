@@ -95,20 +95,43 @@
         </p>
 
         <!-- Search Section -->
-        <div class="search-container">
-            <input 
-                type="text" 
-                id="brandName" 
-                placeholder="Enter brand name..." 
-                class="search-input"
-            >
-            <button 
-                id="checkButton" 
-                class="button absolute right-2 top-1/2 transform -translate-y-1/2"
-            >
-                Check VERO Status
-            </button>
-        </div>
+       <div class="search-container flex flex-col gap-2">
+    <div class="relative w-full">
+        <input 
+            type="text" 
+            id="brandName" 
+            placeholder="Enter brand name..." 
+            class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+    </div>
+    <button 
+        id="checkButton" 
+        class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+    >
+        Check VERO Status
+    </button>
+</div>
+
+<style>
+    .search-container {
+        margin: 1.5rem 0;
+        width: 100%;
+    }
+
+    @media (min-width: 640px) {
+        /* For desktop/tablet, we can use the side-by-side layout */
+        .search-container {
+            display: flex;
+            flex-direction: row;
+            gap: 0.5rem;
+        }
+        
+        #checkButton {
+            width: auto;
+            white-space: nowrap;
+        }
+    }
+</style>
 
         <!-- Results Display -->
         <div id="result" class="result-container">
