@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerOH!</title>
+    
+    <!-- Import Firebase using CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom right, #1a1a2e, #16213e);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .search-container {
+            position: relative;
+            margin: 1.5rem 0;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 2.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .result-container {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            display: none;
+        }
+
+        .button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #2563eb;
+        }
+
+        .experiences-list {
+            margin-top: 1rem;
+            padding-left: 1.5rem;
+            list-style-type: disc;
+        }
+
+        .experience-item {
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center mb-2">VerOH!</h1>
+        <p class="text-gray-600 text-center mb-6">
+            Check if a brand participates in eBay's VERO program
+            <span class="block text-sm mt-1 bg-gradient-to-r from-blue-500 to-red-500 text-transparent bg-clip-text">
+                Protect your listings. Stay informed.
+            </span>
+        </p>
+
+        <!-- Search Section -->
+        <div class="search-container">
+            <input 
+                type="text" 
+                id="brandName" 
+                placeholder="Enter brand name..." 
+                class="search-input"
+            >
+            <button 
+                id="checkButton" 
+                class="button absolute right-2 top-1/2 transform -translate-y-1/2"
+            >
+                Check VERO Status
+            </button>
+        </div>
+
+        <!-- Results Display -->
+        <div id="result" class="result-container">
+            <!-- Results will be inserted here -->
+        </div>
+
+        <!-- VERO Experiences Section -->
+        <div id="experiencesSection" class="hidden mt-4">
+            <div class="border-t border-gray-200 pt-4">
+                <ul id="experiencesList" class="experiences-list">
+                    <!-- Experiences will be inserted here -->
+                </ul>
+                
+                <div class="mt-4">
+                    <textarea 
+                        id="newExperience" 
+                        class="w-full px-3 py-2 rounded-md border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Share your VERO experience with this brand..."
+                        rows="3"
+                    ></textarea>
+                    <button 
+                        id="addExperienceBtn" 
+                        class="button mt-2"
+                    >
+                        Add Experience
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add New Brand Section -->
+        <div class="mt-8 pt-4 border-t border-gray-200">
+            <button 
+                id="showAddForm" 
+                class="text-blue-600 hover:text-blue-700 flex items-center mx-auto"
+            >
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Submit New VERO Brand
+            </button>
+            <form id="addBrandForm" class="mt-4 hidden">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Brand Name</label>
+                        <input type="text" id="newBrandName" class="mt-1 search-input" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Initial VERO Experience</label>
+                        <textarea id="newBrandNotes" class="mt-1 search-input" rows="3"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancelAdd" class="text-gray-600 hover:text-gray-700">Cancel</button>
+                        <button type="submit" class="button">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjg1BZyDfcThP0Urs7FbIPzuap3a8XneU",
+  authDomain: "veroh-df85f.firebaseapp.com",
+  projectId: "veroh-df85f",
+  storageBucket: "veroh-df85f.firebasestorage.app",
+  messagingSenderId: "216164217769",
+  appId: "1:216164217769:web:feeb6685af44b48ba40ab8",
+  measurementId: "G-30M885RYW0"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        let currentBrand = null;
+
+        // Function to check VERO status
+        async function checkVeroStatus() {
+            const brandName = document.getElementById('brandName').value.trim().toLowerCase();
+            const resultDiv = document.getElementById('result');
+            const experiencesSection = document.getElementById('experiencesSection');
+            
+            try {
+                console.log("Starting query...");
+                const querySnapshot = await db.collection("brands")
+                    .where("brandName", "==", brandName)
+                    .get();
+                console.log("Query complete");
+
+                resultDiv.textContent = ''; // Clear previous content
+                
+                if (querySnapshot.empty) {
+                    resultDiv.innerHTML = `
+                        <div class="text-center">
+                            <p class="font-semibold">${brandName.toUpperCase()} - Brand not found in the database.</p>
+                        </div>
+                    `;
+                    experiencesSection.classList.add('hidden');
+                    currentBrand = null;
+                } else {
+                    const data = querySnapshot.docs[0].data();
+                    currentBrand = brandName;
+                    
+                    resultDiv.innerHTML = `
+                        <div class="flex items-start space-x-3">
+                            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div>
+                                <h3 class="font-semibold text-lg">${data.brandName.toUpperCase()} - VERO Participant</h3>
+                            </div>
+                        </div>
+                    `;
+
+                    // Load and display experiences
+                    await loadExperiences(brandName);
+                    experiencesSection.classList.remove('hidden');
+                }
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                console.error("Error:", error);
+                resultDiv.innerHTML = `
+                    <div class="text-red-500">
+                        Error fetching data: ${error.message}
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
+                experiencesSection.classList.add('hidden');
+                currentBrand = null;
+            }
+        }
+
+        // Function to load experiences
+        async function loadExperiences(brandName) {
+            const experiencesList = document.getElementById('experiencesList');
+            experiencesList.innerHTML = '';
+
+            try {
+                const brandDoc = await db.collection("brands")
+                    .where("brandName", "==", brandName)
+                    .get();
+
+                if (!brandDoc.empty) {
+                    const data = brandDoc.docs[0].data();
+                    const experiences = data.experiences || [];
+
+                    experiences.forEach(exp => {
+                        const li = document.createElement('li');
+                        li.className = 'experience-item';
+                        li.textContent = exp;
+                        experiencesList.appendChild(li);
+                    });
+                }
+            } catch (error) {
+                console.error("Error loading experiences:", error);
+            }
+        }
+
+        // Function to add new experience
+        async function addExperience() {
+            if (!currentBrand) return;
+
+            const experienceText = document.getElementById('newExperience').value.trim();
+            if (!experienceText) return;
+
+            try {
+                const brandDoc = await db.collection("brands")
+                    .where("brandName", "==", currentBrand)
+                    .get();
+
+                if (!brandDoc.empty) {
+                    const docRef = brandDoc.docs[0].ref;
+                    await docRef.update({
+                        experiences: firebase.firestore.FieldValue.arrayUnion(experienceText)
+                    });
+
+                    // Clear input and reload experiences
+                    document.getElementById('newExperience').value = '';
+                    await loadExperiences(currentBrand);
+                }
+            } catch (error) {
+                console.error("Error adding experience:", error);
+                alert('Error adding experience. Please try again.');
+            }
+        }
+
+        // Function to add new brand
+        async function addNewBrand(e) {
+            e.preventDefault();
+            const brandName = document.getElementById('newBrandName').value.trim().toLowerCase();
+            const initialExperience = document.getElementById('newBrandNotes').value.trim();
+            
+            try {
+                await db.collection("brands").add({
+                    brandName: brandName,
+                    experiences: initialExperience ? [initialExperience] : [],
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Reset form and hide it
+                e.target.reset();
+                document.getElementById('addBrandForm').classList.add('hidden');
+                alert('Brand added successfully!');
+
+                // Search for the brand to show it
+                document.getElementById('brandName').value = brandName;
+                checkVeroStatus();
+            } catch (error) {
+                console.error("Error adding brand:", error);
+                alert('Error adding brand. Please try again.');
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('checkButton').addEventListener('click', checkVeroStatus);
+        document.getElementById('brandName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkVeroStatus();
+        });
+
+        document.getElementById('showAddForm').addEventListener('click', () => {
+            document.getElementById('addBrandForm').classList.remove('hidden');
+        });
+
+        document.getElementById('cancelAdd').addEventListener('click', () => {
+            document.getElementById('addBrandForm').classList.add('hidden');
+            document.getElementById('addBrandForm').reset();
+        });
+
+        document.getElementById('addBrandForm').addEventListener('submit', addNewBrand);
+        document.getElementById('addExperienceBtn').addEventListener('click', addExperience);
+    </script>
+</body>
+</html>
