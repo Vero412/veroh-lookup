@@ -321,30 +321,50 @@
 
         // Function to add new brand
         async function addNewBrand(e) {
-            e.preventDefault();
-            const brandName = document.getElementById('newBrandName').value.trim().toLowerCase();
-            const initialExperience = document.getElementById('newBrandNotes').value.trim();
-            
-            try {
-                await db.collection("brands").add({
-                    brandName: brandName,
-                    experiences: initialExperience ? [initialExperience] : [],
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // Reset form and hide it
-                e.target.reset();
-                document.getElementById('addBrandForm').classList.add('hidden');
-                alert('Brand added successfully!');
+    e.preventDefault();
+    const brandName = document.getElementById('newBrandName').value.trim().toLowerCase();
+    const initialExperience = document.getElementById('newBrandNotes').value.trim();
+    
+    if (!initialExperience) {
+        alert('Please add a VERO experience');
+        return;
+    }
 
-                // Search for the brand to show it
-                document.getElementById('brandName').value = brandName;
-                checkVeroStatus();
-            } catch (error) {
-                console.error("Error adding brand:", error);
-                alert('Error adding brand. Please try again.');
-            }
+    try {
+        // First check if brand exists
+        const querySnapshot = await db.collection("brands")
+            .where("brandName", "==", brandName)
+            .get();
+
+        if (!querySnapshot.empty) {
+            // Brand exists, add new experience to existing brand
+            const docRef = querySnapshot.docs[0].ref;
+            await docRef.update({
+                experiences: firebase.firestore.FieldValue.arrayUnion(initialExperience)
+            });
+            alert('Experience added to existing brand!');
+        } else {
+            // Brand doesn't exist, create new one
+            await db.collection("brands").add({
+                brandName: brandName,
+                experiences: [initialExperience],
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            alert('New brand added successfully!');
         }
+        
+        // Reset form and hide it
+        e.target.reset();
+        document.getElementById('addBrandForm').classList.add('hidden');
+
+        // Search for the brand to show it
+        document.getElementById('brandName').value = brandName;
+        checkVeroStatus();
+    } catch (error) {
+        console.error("Error:", error);
+        alert('Error adding brand. Please try again.');
+    }
+}
 
         // Event Listeners
         document.getElementById('checkButton').addEventListener('click', checkVeroStatus);
